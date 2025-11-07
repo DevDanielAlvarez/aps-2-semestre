@@ -8,78 +8,184 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from carregar_dataset import baixar_e_listar_imagens
 from src.autenticacao import autenticar
 
+# ANSI cores para deixar o menu bonito (sem libs extras)
+CSI = "\033["
+RESET = CSI + "0m"
+BOLD = CSI + "1m"
+CYAN = CSI + "36m"
+MAGENTA = CSI + "35m"
+YELLOW = CSI + "33m"
+GREEN = CSI + "32m"
+RED = CSI + "31m"
+WHITE_BG = CSI + "47m"  # só usado com moderação
+
+def _print_title():
+    w = 66
+    print()
+    print(GREEN + "╔" + "═" * (w - 2) + "╗" + RESET)
+    title = "SISTEMA DE AUTENTICAÇÃO BIOMÉTRICA"
+    subtitle = "IMPRESSÃO DIGITAL"
+    print(GREEN + "║" + RESET + title.center(w - 2) + GREEN + "║" + RESET)
+    print(GREEN + "║" + RESET + subtitle.center(w - 2) + GREEN + "║" + RESET)
+    print(GREEN + "╚" + "═" * (w - 2) + "╝" + RESET)
+    print()
+
+def _print_menu():
+    print()
+    box_w = 66
+    print(MAGENTA + "╔" + "═" * (box_w - 2) + "╗" + RESET)
+    header = " MENU PRINCIPAL "
+    print(MAGENTA + "║" + RESET + header.center(box_w - 2) + MAGENTA + "║" + RESET)
+    print(MAGENTA + "╠" + "═" * (box_w - 2) + "╣" + RESET)
+    print(MAGENTA + "║" + RESET + f"  {CYAN}[1]{RESET} Entrar no sistema usando a biometria".ljust(box_w - 2) + MAGENTA + "║" + RESET)
+    print(MAGENTA + "║" + RESET + f"  {CYAN}[2]{RESET} Iniciar teste — selecionar imagens para comparar".ljust(box_w - 2) + MAGENTA + "║" + RESET)
+    print(MAGENTA + "║" + RESET + f"  {CYAN}[3]{RESET} Sair do programa".ljust(box_w - 2) + MAGENTA + "║" + RESET)
+    print(MAGENTA + "╚" + "═" * (box_w - 2) + "╝" + RESET)
+    print()
+
+def _print_inline_box(title, lines):
+    w = 66
+    print(YELLOW + "┏" + "━" * (w - 2) + "┓" + RESET)
+    print(YELLOW + "┃ " + BOLD + title.center(w - 4) + RESET + YELLOW + " ┃" + RESET)
+    print(YELLOW + "┣" + "━" * (w - 2) + "┫" + RESET)
+    for line in lines:
+        print(YELLOW + "┃ " + RESET + line.ljust(w - 4) + YELLOW + " ┃" + RESET)
+    print(YELLOW + "┗" + "━" * (w - 2) + "┛" + RESET)
+
 def main():
-    """
-    Entrada principal do programa de autenticação por digitais.
-    Mantém a lógica e funcionalidades originais; apenas ajusta aparência e textos.
-    """
-    print("\n" + "#" * 60)
-    print("   SISTEMA DE AUTENTICAÇÃO BIOMÉTRICA - IMPRESSÃO DIGITAL")
-    print("#" * 60 + "\n")
-    
+    _print_title()
+
     try:
-        # Baixa o dataset (mesma ação de antes)
-        print("Iniciando download/varredura do dataset no Kaggle...")
+        print(CYAN + "Iniciando download/varredura do dataset no Kaggle..." + RESET)
         imagens = baixar_e_listar_imagens()
-        
+
         if len(imagens) < 2:
-            print("Erro: não há imagens suficientes para executar comparações.\n")
+            print(RED + "Erro: não há imagens suficientes para executar comparações." + RESET)
             return
-        
-        print(f"Dataset pronto — {len(imagens)} imagens encontradas.\n")
-        
-        # Interface simples em loop (opções reduzidas)
+
+        print(f"{GREEN}Dataset pronto — {len(imagens)} imagens encontradas.{RESET}")
+
         while True:
-            print("\n" + "-" * 60)
-            print(" MENU — ESCOLHA UMA AÇÃO ")
-            print("-" * 60)
-            print("[1] Iniciar teste   — selecionar imagens para comparar")
-            print("[2] Sair do programa")
-            print("-" * 60)
-            
-            escolha = input("Digite a opção (1-2): ").strip()
-            
+            _print_menu()
+            escolha = input(BOLD + "Escolha uma opção (1-3): " + RESET).strip()
             if escolha == "1":
-                teste_manual(imagens)
+                entrar_no_sistema(imagens)
             elif escolha == "2":
-                print("Finalizando. Até logo.")
+                teste_manual(imagens)
+            elif escolha == "3":
+                print(GREEN + "\nObrigado por usar o sistema. Até logo!\n" + RESET)
                 break
             else:
-                print("Opção inválida — tente novamente.")
-                
+                print(YELLOW + "Opção inválida — tente novamente." + RESET)
+
     except Exception as exc:
         print(f"Erro inesperado no fluxo principal: {exc}")
 
+def entrar_no_sistema(imagens):
+    """Fluxo de login com níveis de acesso: um ministro (acesso total) e dois colaboradores (acesso parcial)."""
+    title = "ENTRAR NO SISTEMA (BIOMETRIA)"
+    intro = [
+        "Neste modo, três perfis biométricos são usados automaticamente:",
+        "  - 1 Ministro (acesso total)",
+        "  - 2 Colaboradores (acesso parcial)",
+        "",
+        "Será solicitado que escolha uma imagem de teste entre as listadas."
+    ]
+    _print_inline_box(title, intro)
+
+    # Necessário pelo menos 3 imagens para tentar a configuração automática
+    if len(imagens) < 3:
+        print(YELLOW + "Não há imagens suficientes para configuração automática. Abrindo seleção manual..." + RESET)
+        return teste_manual(imagens)
+
+    # Tentativa de selecionar os perfis conforme convenção anterior (mantendo essência)
+    try:
+        ministro = imagens[0]
+        colaborador_a = imagens[4]
+        colaborador_b = imagens[7]
+    except Exception:
+        print(YELLOW + "Perfis automáticos não disponíveis (índices faltando). Usando seleção manual..." + RESET)
+        return teste_manual(imagens)
+
+    perfil_lines = [
+        f"Ministro  -> {os.path.basename(ministro)}",
+        f"Colaborador A -> {os.path.basename(colaborador_a)}",
+        f"Colaborador B -> {os.path.basename(colaborador_b)}",
+        "",
+        "Escolha abaixo a imagem de teste (mostrando até 10 primeiras):"
+    ]
+    _print_inline_box("PERFIS BIOMETRICOS", perfil_lines)
+
+    for i, caminho in enumerate(imagens[:10], start=1):
+        print(f"  {i:2d}. {os.path.basename(caminho)}")
+    try:
+        idx_test = int(input("\nÍndice da imagem de teste (1-10): ").strip()) - 1
+        if not (0 <= idx_test < len(imagens)):
+            print(YELLOW + "Índice inválido." + RESET)
+            return
+
+        img_teste = imagens[idx_test]
+        print(CYAN + "\nAutenticando contra perfis registrados..." + RESET)
+
+        # Primeiro tenta ministro (acesso total) - sem prints internos de progresso
+        if autenticar(ministro, img_teste, verbose=False):
+            # Mensagem de ACEITAÇÃO para ministro — chamativa e destacada
+            w = 66
+            print(GREEN + "╔" + "═" * (w - 2) + "╗" + RESET)
+            print(GREEN + "║" + RESET + BOLD + " ✦✦✦ ACESSO TOTAL CONCEDIDO ✦✦✦ ".center(w - 2) + RESET + GREEN + "║" + RESET)
+            print(GREEN + "║" + RESET + BOLD + "       AUTORIZAÇÃO: PRIMEIRO MINISTRO       ".center(w - 2) + RESET + GREEN + "║" + RESET)
+            print(GREEN + "╚" + "═" * (w - 2) + "╝" + RESET)
+            print("\n" + BOLD + GREEN + ">>> BEM-VINDO, PRIMEIRO MINISTRO! ACESSO PERMITIDO <<<" + RESET + "\n")
+            return True
+
+        # Em seguida tenta os colaboradores (acesso parcial) - sem prints internos de progresso
+        if autenticar(colaborador_a, img_teste, verbose=False) or autenticar(colaborador_b, img_teste, verbose=False):
+            # Mensagem de ACEITAÇÃO parcial para colaboradores — destacada mas menor que ministro
+            w = 66
+            print(YELLOW + "╔" + "═" * (w - 2) + "╗" + RESET)
+            print(YELLOW + "║" + RESET + BOLD + " ✦ ACESSO PARCIAL CONCEDIDO ✦ ".center(w - 2) + RESET + YELLOW + "║" + RESET)
+            print(YELLOW + "║" + RESET + "      Permissões limitadas: recursos restritos      ".center(w - 2) + YELLOW + "║" + RESET)
+            print(YELLOW + "╚" + "═" * (w - 2) + "╝" + RESET)
+            print("\n" + BOLD + YELLOW + ">>> ACESSO PARCIAL — BEM-VINDO, COLABORADOR <<<" + RESET + "\n")
+            return True
+
+        # Nenhum perfil correspondeu — REJEIÇÃO chamativa
+        w = 66
+        print(RED + "╔" + "═" * (w - 2) + "╗" + RESET)
+        print(RED + "║" + RESET + BOLD + " ✖✖✖ ACESSO NEGADO ✖✖✖ ".center(w - 2) + RESET + RED + "║" + RESET)
+        print(RED + "║" + RESET + "               Impressão digital não reconhecida               ".center(w - 2) + RED + "║" + RESET)
+        print(RED + "╚" + "═" * (w - 2) + "╝" + RESET)
+        print("\n" + BOLD + RED + ">>> ACESSO NEGADO — AUTENTICAÇÃO FALHOU <<<" + RESET + "\n")
+        return False
+
+    except ValueError:
+        print(YELLOW + "Entrada inválida — operação abortada." + RESET)
+        return False
+
 def teste_automatico(imagens):
     """Seleciona duas imagens aleatórias e testa vários limiares."""
-    print("\n>>> TESTE AUTOMÁTICO")
-    print("=" * 40)
-    
+    _print_inline_box("TESTE AUTOMÁTICO", ["Selecionando duas imagens aleatórias e avaliando com vários limiares."])
     img_a, img_b = random.sample(imagens, 2)
-    
-    print(f"Imagem A: {os.path.basename(img_a)}")
-    print(f"Imagem B: {os.path.basename(img_b)}")
-    
+    print(f"\n{CYAN}Imagem A:{RESET} {os.path.basename(img_a)}")
+    print(f"{CYAN}Imagem B:{RESET} {os.path.basename(img_b)}\n")
+
     limiares = [50, 60, 70, 80]
     for limiar in limiares:
-        print(f"\nTestando com limiar = {limiar}%")
+        print(MAGENTA + f"--- Testando com limiar = {limiar}% ---" + RESET)
         sucesso = autenticar(img_a, img_b, limiar=limiar)
-        status = "AUTENTICADO" if sucesso else "NEGADO"
-        print(f"Resultado: {status}")
+        status = (GREEN + "AUTENTICADO" + RESET) if sucesso else (RED + "NEGADO" + RESET)
+        print(f"Resultado: {status}\n")
 
 def teste_manual(imagens):
     """Permite ao usuário escolher índices das imagens para comparar."""
-    print("\n>>> INICIAR TESTE")
-    print("=" * 40)
-    
-    print("Imagens disponíveis (até 10 mostradas):")
-    for i, caminho in enumerate(imagens[:10]):
-        print(f"  {i+1:2d}. {os.path.basename(caminho)}")
-    
+    _print_inline_box("INICIAR TESTE", ["Escolha duas imagens para comparar. Mostrando até 10 primeiras."])
+    for i, caminho in enumerate(imagens[:10], start=1):
+        print(f"  {i:2d}. {os.path.basename(caminho)}")
+
     try:
         i1 = int(input("\nÍndice da 1ª imagem (1-10): ").strip()) - 1
         i2 = int(input("Índice da 2ª imagem (1-10): ").strip()) - 1
-        
+
         if 0 <= i1 < len(imagens) and 0 <= i2 < len(imagens):
             img1 = imagens[i1]
             img2 = imagens[i2]
@@ -87,33 +193,33 @@ def teste_manual(imagens):
             limiar = int(limiar_str) if limiar_str else 60
             autenticar(img1, img2, limiar=limiar)
         else:
-            print("Índices fora do intervalo.")
+            print(YELLOW + "Índices fora do intervalo." + RESET)
     except ValueError:
-        print("Entrada inválida — operação abortada.")
+        print(YELLOW + "Entrada inválida — operação abortada." + RESET)
 
 def teste_multiplas_comparacoes(imagens):
     """Executa várias comparações aleatórias e mostra estatísticas simples."""
-    print("\n>>> TESTE MULTIPLO")
-    print("=" * 40)
-    
+    _print_inline_box("TESTE MÚLTIPLO", ["Executando múltiplas comparações aleatórias e mostrando estatísticas."])
     n = min(10, len(imagens) // 2)
     limiar = 60
-    print(f"Realizando {n} execuções com limiar = {limiar}%...")
-    
+    print(f"{CYAN}Realizando {n} execuções com limiar = {limiar}%...{RESET}")
+
     resultados = []
     for k in range(n):
         a, b = random.sample(imagens, 2)
         ok = autenticar(a, b, limiar=limiar)
         resultados.append(ok)
-        print(f"  Teste {k+1:2d}: {'OK' if ok else 'FALHA'}")
-    
+        print(f"  Teste {k+1:2d}: " + (GREEN + "OK" + RESET if ok else RED + "FALHA" + RESET))
+
     positivos = sum(resultados)
     taxa = (positivos / n) * 100 if n > 0 else 0.0
-    
-    print("\nResumo:")
-    print(f"  Total de testes: {n}")
-    print(f"  Autenticações bem-sucedidas: {positivos}")
-    print(f"  Taxa de sucesso: {taxa:.1f}%")
+
+    resumo = [
+        f"Total de testes: {n}",
+        f"Autenticações bem-sucedidas: {positivos}",
+        f"Taxa de sucesso: {taxa:.1f}%"
+    ]
+    _print_inline_box("RESUMO", resumo)
 
 if __name__ == "__main__":
     main()

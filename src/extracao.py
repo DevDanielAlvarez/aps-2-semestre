@@ -1,10 +1,11 @@
 import cv2
 import numpy as np
 
-def extrair_caracteristicas(imagem):
+def extrair_caracteristicas(imagem, verbose=True):
     """
     Detecta e descreve pontos-chave em uma impressão digital usando ORB.
     Mantém a mesma lógica e parâmetros da versão anterior.
+    Se verbose=False suprime saídas de progresso.
     """
     try:
         if imagem is None:
@@ -24,19 +25,23 @@ def extrair_caracteristicas(imagem):
         keypoints, descritores = orb.detectAndCompute(imagem, None)
 
         if descritores is not None:
-            print(f"✅ Extraídas {len(keypoints)} características")
+            if verbose:
+                print(f"✅ Extraídas {len(keypoints)} características")
         else:
-            print("⚠️ Nenhuma característica extraída")
+            if verbose:
+                print("⚠️ Nenhuma característica extraída")
 
         return keypoints, descritores
 
     except Exception as e:
-        print(f"Erro na extração de características: {e}")
+        if verbose:
+            print(f"Erro na extração de características: {e}")
         return None, None
 
-def comparar_digitais(desc1, desc2):
+def comparar_digitais(desc1, desc2, verbose=True):
     """
     Compara dois conjuntos de descritores e devolve um score de similaridade (0-100).
+    Se verbose=False suprime detalhes dos matches.
     """
     try:
         if desc1 is None or desc2 is None:
@@ -58,11 +63,13 @@ def comparar_digitais(desc1, desc2):
         max_distance = 100
         score = max(0, 100 - (avg_dist / max_distance) * 100)
 
-        print(f"🔍 {len(matches)} matches encontrados, {num_good} melhores")
-        print(f"📊 Distância média: {avg_dist:.2f}, Score: {score:.2f}")
+        if verbose:
+            print(f"🔍 {len(matches)} matches encontrados, {num_good} melhores")
+            print(f"📊 Distância média: {avg_dist:.2f}, Score: {score:.2f}")
 
         return score
 
     except Exception as e:
-        print(f"Erro na comparação: {e}")
+        if verbose:
+            print(f"Erro na comparação: {e}")
         return 0
