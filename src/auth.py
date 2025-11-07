@@ -1,5 +1,5 @@
-from .load import preprocessar_imagem
-from .coleta import extrair_caracteristicas, comparar_digitais
+from load import preprocessar_imagem
+from coleta import extrair_caracteristicas, comparar_digitais
 import os
 
 def autenticar(imagem_registrada, imagem_teste, limiar=60, verbose=True):
@@ -8,7 +8,7 @@ def autenticar(imagem_registrada, imagem_teste, limiar=60, verbose=True):
     Comportamento:
       - Mantém logs detalhados (pré-processamento, extração, matches) somente se verbose=True
       - Sempre exibe cabeçalho básico (início + nomes dos arquivos) e o bloco de resultado final,
-        mesmo quando verbose=False — para uso nos fluxos automatizados (opção 1).
+        mesmo quando verbose=False — para uso nos fluxos automatizados (opção 1 do menu).
     """
     try:
         # Cabeçalho básico — sempre mostrado
