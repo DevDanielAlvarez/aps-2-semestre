@@ -1,5 +1,5 @@
-from .preprocessamento import preprocessar_imagem
-from .extracao import extrair_caracteristicas, comparar_digitais
+from .load import preprocessar_imagem
+from .coleta import extrair_caracteristicas, comparar_digitais
 import os
 
 def autenticar(imagem_registrada, imagem_teste, limiar=60, verbose=True):

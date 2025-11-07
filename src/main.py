@@ -5,8 +5,8 @@ import random
 # Garantir que o pacote local seja importável (mesmo comportamento de antes)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from carregar_dataset import baixar_e_listar_imagens
-from src.autenticacao import autenticar
+from dataset import baixar_e_listar_imagens
+from auth import autenticar
 
 # ANSI cores para deixar o menu bonito (sem libs extras)
 CSI = "\033["
