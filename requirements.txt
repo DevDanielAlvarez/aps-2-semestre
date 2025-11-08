@@ -1,5 +1,5 @@
-opencv-python
 numpy
 scikit-image
-kagglehub
+opencv-python
 python-dotenv
+kagglehub
