@@ -82,74 +82,135 @@ def main():
         print(f"Erro inesperado no fluxo principal: {exc}")
 
 def entrar_no_sistema(imagens):
-    """Fluxo de login com níveis de acesso: um ministro (acesso total) e dois colaboradores (acesso parcial)."""
-    title = "ENTRAR NO SISTEMA (BIOMETRIA)"
+    """Fluxo de login: pergunta o cargo do usuário, guarda a escolha e depois valida
+    a biometria escolhida contra perfis com níveis de acesso (1,2,3)."""
+    title = "ENTRAR NO SISTEMA (BIOMETRIA / REQUISITO DE CARGO)"
     intro = [
-        "Neste modo, três perfis biométricos são usados automaticamente:",
-        "  - 1 Ministro (acesso total)",
-        "  - 2 Colaboradores (acesso parcial)",
+        "Antes de selecionar a impressão, informe seu cargo.",
+        "O sistema verificará se a biometria escolhida confere com o nível de acesso",
+        "associado ao perfil biométrico registrado.",
         "",
-        "Será solicitado que escolha uma imagem de teste entre as listadas."
+        "Mapeamento de níveis:",
+        "  Nível 1 — Acesso geral (qualquer funcionário)",
+        "  Nível 2 — Diretores (acesso restrito)",
+        "  Nível 3 — Ministro (acesso total)"
     ]
     _print_inline_box(title, intro)
 
-    # Necessário pelo menos 3 imagens para tentar a configuração automática
+    # leitura do cargo e armazenamento na sessão temporária
+    cargo = None
+    cargo_nivel = 0
+    while True:
+        escolha_cargo = input(BOLD + "\nEscolha seu cargo: [1] Funcionário  [2] Diretor  [3] Ministro  (q = sair): " + RESET).strip().lower()
+        if escolha_cargo == "1":
+            cargo = "funcionario"
+            cargo_nivel = 1
+            print(GREEN + "Cargo selecionado: Funcionário (Nível 1)" + RESET)
+            break
+        if escolha_cargo == "2":
+            cargo = "diretor"
+            cargo_nivel = 2
+            print(YELLOW + "Cargo selecionado: Diretor (Nível 2)" + RESET)
+            break
+        if escolha_cargo == "3":
+            cargo = "ministro"
+            cargo_nivel = 3
+            print(GREEN + "Cargo selecionado: Ministro (Nível 3)" + RESET)
+            break
+        if escolha_cargo == "q":
+            print(YELLOW + "Operação cancelada pelo usuário." + RESET)
+            return False
+        print(YELLOW + "Entrada inválida — escolha 1, 2, 3 ou q." + RESET)
+
+    # verifica se há imagens suficientes para criar perfis
     if len(imagens) < 3:
         print(YELLOW + "Não há imagens suficientes para configuração automática. Abrindo seleção manual..." + RESET)
         return teste_manual(imagens)
 
-    # Tentativa de selecionar os perfis conforme convenção anterior (mantendo essência)
+    # define perfis (convenção)
     try:
-        ministro = imagens[0]
-        colaborador_a = imagens[4]
-        colaborador_b = imagens[7]
+        # perfil biométrico e seu nível associado
+        perfil_ministro = (imagens[0], 3)       # Nível 3
+        perfil_diretor = (imagens[4], 2)        # Nível 2
+        perfil_funcionario = (imagens[7], 1)    # Nível 1
     except Exception:
         print(YELLOW + "Perfis automáticos não disponíveis (índices faltando). Usando seleção manual..." + RESET)
         return teste_manual(imagens)
 
     perfil_lines = [
-        f"Ministro  -> {os.path.basename(ministro)}",
-        f"Colaborador A -> {os.path.basename(colaborador_a)}",
-        f"Colaborador B -> {os.path.basename(colaborador_b)}",
+        f"Ministro  -> {os.path.basename(perfil_ministro[0])} (Nível 3)",
+        f"Diretor   -> {os.path.basename(perfil_diretor[0])} (Nível 2)",
+        f"Funcionário -> {os.path.basename(perfil_funcionario[0])} (Nível 1)",
         "",
-        "Escolha abaixo a imagem de teste (mostrando até 10 primeiras):"
+        "Agora escolha a imagem de teste (mostrando até 10 primeiras):"
     ]
     _print_inline_box("PERFIS BIOMETRICOS", perfil_lines)
 
     for i, caminho in enumerate(imagens[:10], start=1):
         print(f"  {i:2d}. {os.path.basename(caminho)}")
+
     try:
         idx_test = int(input("\nÍndice da imagem de teste (1-10): ").strip()) - 1
         if not (0 <= idx_test < len(imagens)):
             print(YELLOW + "Índice inválido." + RESET)
-            return
+            return False
 
         img_teste = imagens[idx_test]
         print(CYAN + "\nAutenticando contra perfis registrados..." + RESET)
 
-        # Primeiro tenta ministro (acesso total) - sem prints internos de progresso
-        if autenticar(ministro, img_teste, verbose=False):
-            # Mensagem de ACEITAÇÃO para ministro — chamativa e destacada
-            w = 66
-            print(GREEN + "╔" + "═" * (w - 2) + "╗" + RESET)
-            print(GREEN + "║" + RESET + BOLD + " ✦✦✦ ACESSO TOTAL CONCEDIDO ✦✦✦ ".center(w - 2) + RESET + GREEN + "║" + RESET)
-            print(GREEN + "║" + RESET + BOLD + "       AUTORIZAÇÃO: PRIMEIRO MINISTRO       ".center(w - 2) + RESET + GREEN + "║" + RESET)
-            print(GREEN + "╚" + "═" * (w - 2) + "╝" + RESET)
-            print("\n" + BOLD + GREEN + ">>> BEM-VINDO, PRIMEIRO MINISTRO! ACESSO PERMITIDO <<<" + RESET + "\n")
-            return True
+        # testar cada perfil sem prints internos e sem outcomes repetidos
+        match_ministro = autenticar(perfil_ministro[0], img_teste, verbose=False, show_outcome=False)
+        match_diretor = autenticar(perfil_diretor[0], img_teste, verbose=False, show_outcome=False)
+        match_func = autenticar(perfil_funcionario[0], img_teste, verbose=False, show_outcome=False)
 
-        # Em seguida tenta os colaboradores (acesso parcial) - sem prints internos de progresso
-        if autenticar(colaborador_a, img_teste, verbose=False) or autenticar(colaborador_b, img_teste, verbose=False):
-            # Mensagem de ACEITAÇÃO parcial para colaboradores — destacada mas menor que ministro
-            w = 66
-            print(YELLOW + "╔" + "═" * (w - 2) + "╗" + RESET)
-            print(YELLOW + "║" + RESET + BOLD + " ✦ ACESSO PARCIAL CONCEDIDO ✦ ".center(w - 2) + RESET + YELLOW + "║" + RESET)
-            print(YELLOW + "║" + RESET + "      Permissões limitadas: recursos restritos      ".center(w - 2) + YELLOW + "║" + RESET)
-            print(YELLOW + "╚" + "═" * (w - 2) + "╝" + RESET)
-            print("\n" + BOLD + YELLOW + ">>> ACESSO PARCIAL — BEM-VINDO, COLABORADOR <<<" + RESET + "\n")
-            return True
+        # descobrir qual perfil correspondeu e o nível exigido
+        matched_level = 0
+        matched_label = None
+        if match_ministro:
+            matched_level = perfil_ministro[1]; matched_label = "Ministro"
+        elif match_diretor:
+            matched_level = perfil_diretor[1]; matched_label = "Diretor"
+        elif match_func:
+            matched_level = perfil_funcionario[1]; matched_label = "Funcionário"
 
-        # Nenhum perfil correspondeu — REJEIÇÃO chamativa
+        # se houver match, validar permissão com base no cargo declarado
+        if matched_level > 0:
+            # condicional de autorização:
+            # permitido se cargo_nivel >= matched_level (cargo declarado tem igual ou maior privilégio)
+            if cargo_nivel >= matched_level:
+                # acesso concedido — mensagem chamativa que varia conforme nível
+                w = 66
+                if matched_level == 3:
+                    print(GREEN + "╔" + "═" * (w - 2) + "╗" + RESET)
+                    print(GREEN + "║" + RESET + BOLD + " ✦✦✦ ACESSO NÍVEL 3 CONCEDIDO ✦✦✦ ".center(w - 2) + RESET + GREEN + "║" + RESET)
+                    print(GREEN + "║" + RESET + BOLD + f"    AUTORIZAÇÃO: {matched_label} / MINISTÉRIO    ".center(w - 2) + RESET + GREEN + "║" + RESET)
+                    print(GREEN + "╚" + "═" * (w - 2) + "╝" + RESET)
+                    print("\n" + BOLD + GREEN + ">>> ACESSO TOTAL: BEM-VINDO, ACESSO AO NÍVEL 3 <<<" + RESET + "\n")
+                elif matched_level == 2:
+                    print(YELLOW + "╔" + "═" * (w - 2) + "╗" + RESET)
+                    print(YELLOW + "║" + RESET + BOLD + " ✦✦ ACESSO NÍVEL 2 CONCEDIDO ✦✦ ".center(w - 2) + RESET + YELLOW + "║" + RESET)
+                    print(YELLOW + "║" + RESET + BOLD + f"      AUTORIZAÇÃO: {matched_label} / DIRETORIA      ".center(w - 2) + RESET + YELLOW + "║" + RESET)
+                    print(YELLOW + "╚" + "═" * (w - 2) + "╝" + RESET)
+                    print("\n" + BOLD + YELLOW + ">>> ACESSO RESTRITO: BEM-VINDO, ACESSO AO NÍVEL 2 <<<" + RESET + "\n")
+                else:
+                    print(GREEN + "╔" + "═" * (w - 2) + "╗" + RESET)
+                    print(GREEN + "║" + RESET + BOLD + " ✦ ACESSO NÍVEL 1 CONCEDIDO ✦ ".center(w - 2) + RESET + GREEN + "║" + RESET)
+                    print(GREEN + "║" + RESET + f"        AUTORIZAÇÃO: {matched_label} (Acesso geral)        ".center(w - 2) + GREEN + "║" + RESET)
+                    print(GREEN + "╚" + "═" * (w - 2) + "╝" + RESET)
+                    print("\n" + BOLD + GREEN + ">>> ACESSO LIBERADO: BEM-VINDO (NÍVEL 1) <<<" + RESET + "\n")
+                return True
+            else:
+                # perfil exige nível maior que cargo declarado -> negar
+                w = 66
+                print(RED + "╔" + "═" * (w - 2) + "╗" + RESET)
+                print(RED + "║" + RESET + BOLD + " ✖✖✖ ACESSO NEGADO ✖✖✖ ".center(w - 2) + RESET + RED + "║" + RESET)
+                print(RED + "║" + RESET + f"  Biometria detectada: {matched_label} (Nível {matched_level})".center(w - 2) + RED + "║" + RESET)
+                print(RED + "║" + RESET + f"  Cargo declarado: {cargo.capitalize()} (Nível {cargo_nivel}) — privilégios insuficientes  ".center(w - 2) + RED + "║" + RESET)
+                print(RED + "╚" + "═" * (w - 2) + "╝" + RESET)
+                print("\n" + BOLD + RED + ">>> ACESSO NEGADO — PERFIL/ CARGO INCOMPATÍVEIS <<<" + RESET + "\n")
+                return False
+
+        # nenhuma correspondência biométrica
         w = 66
         print(RED + "╔" + "═" * (w - 2) + "╗" + RESET)
         print(RED + "║" + RESET + BOLD + " ✖✖✖ ACESSO NEGADO ✖✖✖ ".center(w - 2) + RESET + RED + "║" + RESET)

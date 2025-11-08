@@ -2,13 +2,13 @@ from load import preprocessar_imagem
 from coleta import extrair_caracteristicas, comparar_digitais
 import os
 
-def autenticar(imagem_registrada, imagem_teste, limiar=60, verbose=True):
+def autenticar(imagem_registrada, imagem_teste, limiar=60, verbose=True, show_outcome=True):
     """
     Autentica uma impressão digital comparando com uma imagem registrada.
-    Comportamento:
-      - Mantém logs detalhados (pré-processamento, extração, matches) somente se verbose=True
-      - Sempre exibe cabeçalho básico (início + nomes dos arquivos) e o bloco de resultado final,
-        mesmo quando verbose=False — para uso nos fluxos automatizados (opção 1 do menu).
+    - verbose: controla logs detalhados de processamento (pré-process., extração, matches)
+    - show_outcome: controla se a linha de resultado textual (✅/❌) deve ser exibida
+      (útil para suprimir mensagens repetidas quando o chamador vai mostrar um box final)
+    Cabeçalho e o bloco numérico de resultado (similaridade/limiar) são sempre exibidos.
     """
     try:
         # Cabeçalho básico — sempre mostrado
@@ -53,10 +53,12 @@ def autenticar(imagem_registrada, imagem_teste, limiar=60, verbose=True):
         print(f"   Limiar: {limiar}%")
 
         if similaridade >= limiar:
-            print("✅ ACESSO PERMITIDO - Impressões digitais correspondem!")
+            if show_outcome:
+                print("✅ ACESSO PERMITIDO - Impressões digitais correspondem!")
             return True
         else:
-            print("❌ ACESSO NEGADO - Impressões digitais não correspondem")
+            if show_outcome:
+                print("❌ ACESSO NEGADO - Impressões digitais não correspondem")
             return False
 
     except Exception as err:
