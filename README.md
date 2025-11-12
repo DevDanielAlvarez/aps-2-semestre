@@ -3,7 +3,7 @@
 Clone o repositório e entre na pasta:
 
 ```bash
-git clone <seu-repositorio>
+git clone ...
 cd APS
 ```
 
